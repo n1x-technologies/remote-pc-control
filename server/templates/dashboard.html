@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Remote PC Control - Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .stats-overview {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            color: #666;
+            margin-top: 5px;
+            font-size: 0.9em;
+        }
+
+        .pc-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+            gap: 20px;
+        }
+
+        .pc-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease;
+        }
+
+        .pc-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .pc-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .pc-name {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .status {
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: bold;
+        }
+
+        .status.online {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status.offline {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .pc-info {
+            margin-bottom: 20px;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #f5f5f5;
+        }
+
+        .info-label {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .info-value {
+            color: #333;
+            font-weight: 500;
+        }
+
+        .progress-bar {
+            background: #e0e0e0;
+            border-radius: 10px;
+            height: 20px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            transition: width 0.5s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.75em;
+            font-weight: bold;
+        }
+
+        .progress-fill.warning {
+            background: linear-gradient(90deg, #f093fb, #f5576c);
+        }
+
+        .progress-fill.danger {
+            background: linear-gradient(90deg, #fa709a, #fee140);
+        }
+
+        .actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9em;
+        }
+
+        .btn:hover {
+            transform: scale(1.05);
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #f56565;
+            color: white;
+        }
+
+        .btn-warning {
+            background: #ed8936;
+            color: white;
+        }
+
+        .command-input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            margin-top: 10px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .loading {
+            text-align: center;
+            color: white;
+            font-size: 1.5em;
+            padding: 50px;
+        }
+
+        .refresh-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: white;
+            border: none;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            cursor: pointer;
+            font-size: 1.5em;
+            transition: transform 0.3s ease;
+        }
+
+        .refresh-btn:hover {
+            transform: scale(1.1) rotate(180deg);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🖥️ Remote PC Control Dashboard</h1>
+
+        <div class="stats-overview" id="stats-overview">
+            <div class="stat-card">
+                <div class="stat-number" id="total-pcs">0</div>
+                <div class="stat-label">Total PCs</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="online-pcs">0</div>
+                <div class="stat-label">Online</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="offline-pcs">0</div>
+                <div class="stat-label">Offline</div>
+            </div>
+        </div>
+
+        <div class="pc-grid" id="pc-grid">
+            <div class="loading">⏳ Cargando PCs...</div>
+        </div>
+    </div>
+
+    <button class="refresh-btn" onclick="loadClients()">🔄</button>
+
+    <script>
+        async function loadClients() {
+            try {
+                const response = await fetch('/api/clients');
+                const clients = await response.json();
+
+                updateStats(clients);
+                renderClients(clients);
+            } catch (error) {
+                console.error('Error loading clients:', error);
+                document.getElementById('pc-grid').innerHTML = '<div class="loading">❌ Error al cargar PCs</div>';
+            }
+        }
+
+        function updateStats(clients) {
+            const total = clients.length;
+            const online = clients.filter(c => c.online).length;
+            const offline = total - online;
+
+            document.getElementById('total-pcs').textContent = total;
+            document.getElementById('online-pcs').textContent = online;
+            document.getElementById('offline-pcs').textContent = offline;
+        }
+
+        function renderClients(clients) {
+            const grid = document.getElementById('pc-grid');
+
+            if (clients.length === 0) {
+                grid.innerHTML = '<div class="loading">No hay PCs configuradas</div>';
+                return;
+            }
+
+            grid.innerHTML = clients.map(client => renderClientCard(client)).join('');
+        }
+
+        function renderClientCard(client) {
+            const statusClass = client.online ? 'online' : 'offline';
+            const statusText = client.online ? '🟢 Online' : '🔴 Offline';
+
+            let statsHtml = '';
+            if (client.online && client.stats) {
+                const cpuPercent = client.stats.cpu_percent_avg.toFixed(1);
+                const memPercent = client.stats.memory_percent.toFixed(1);
+                const diskPercent = client.stats.disk_percent.toFixed(1);
+
+                const cpuClass = cpuPercent > 80 ? 'danger' : cpuPercent > 60 ? 'warning' : '';
+                const memClass = memPercent > 80 ? 'danger' : memPercent > 60 ? 'warning' : '';
+                const diskClass = diskPercent > 80 ? 'danger' : diskPercent > 60 ? 'warning' : '';
+
+                statsHtml = `
+                    <div class="pc-info">
+                        <div class="info-row">
+                            <span class="info-label">CPU</span>
+                            <span class="info-value">${cpuPercent}%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill ${cpuClass}" style="width: ${cpuPercent}%">${cpuPercent}%</div>
+                        </div>
+
+                        <div class="info-row" style="margin-top: 10px;">
+                            <span class="info-label">RAM</span>
+                            <span class="info-value">${memPercent}%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill ${memClass}" style="width: ${memPercent}%">${memPercent}%</div>
+                        </div>
+
+                        <div class="info-row" style="margin-top: 10px;">
+                            <span class="info-label">Disco</span>
+                            <span class="info-value">${diskPercent}%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill ${diskClass}" style="width: ${diskPercent}%">${diskPercent}%</div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            let infoHtml = '';
+            if (client.online && client.platform) {
+                infoHtml = `
+                    <div class="pc-info">
+                        <div class="info-row">
+                            <span class="info-label">Platform</span>
+                            <span class="info-value">${client.platform}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Host</span>
+                            <span class="info-value">${client.host}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">CPU Cores</span>
+                            <span class="info-value">${client.cpu_count}</span>
+                        </div>
+                    </div>
+                `;
+            }
+
+            const actionsHtml = client.online ? `
+                <div class="actions">
+                    <button class="btn btn-primary" onclick="executeCommand('${client.name}')">📝 Ejecutar CMD</button>
+                    <button class="btn btn-primary" onclick="viewProcesses('${client.name}')">📊 Procesos</button>
+                    <button class="btn btn-warning" onclick="rebootPC('${client.name}')">🔄 Reiniciar</button>
+                    <button class="btn btn-danger" onclick="shutdownPC('${client.name}')">⚡ Apagar</button>
+                </div>
+            ` : '<div style="color: #999; text-align: center; padding: 20px;">PC desconectada</div>';
+
+            return `
+                <div class="pc-card">
+                    <div class="pc-header">
+                        <div class="pc-name">${client.name}</div>
+                        <div class="status ${statusClass}">${statusText}</div>
+                    </div>
+                    ${infoHtml}
+                    ${statsHtml}
+                    ${actionsHtml}
+                </div>
+            `;
+        }
+
+        async function executeCommand(pcName) {
+            const command = prompt('Ingresa el comando a ejecutar:');
+            if (!command) return;
+
+            try {
+                const response = await fetch(`/api/client/${pcName}/execute`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({command})
+                });
+
+                const result = await response.json();
+                alert(`Salida:\n${result.stdout}\n\nError:\n${result.stderr}\n\nExit code: ${result.returncode}`);
+            } catch (error) {
+                alert('Error ejecutando comando: ' + error);
+            }
+        }
+
+        async function rebootPC(pcName) {
+            if (!confirm(`¿Seguro que quieres reiniciar ${pcName}?`)) return;
+
+            try {
+                const response = await fetch(`/api/client/${pcName}/reboot`, {method: 'POST'});
+                const result = await response.json();
+                alert(result.message || 'PC reiniciando...');
+                setTimeout(loadClients, 2000);
+            } catch (error) {
+                alert('Error: ' + error);
+            }
+        }
+
+        async function shutdownPC(pcName) {
+            if (!confirm(`¿Seguro que quieres apagar ${pcName}?`)) return;
+
+            try {
+                const response = await fetch(`/api/client/${pcName}/shutdown`, {method: 'POST'});
+                const result = await response.json();
+                alert(result.message || 'PC apagando...');
+                setTimeout(loadClients, 2000);
+            } catch (error) {
+                alert('Error: ' + error);
+            }
+        }
+
+        async function viewProcesses(pcName) {
+            try {
+                const response = await fetch(`/api/client/${pcName}/processes`);
+                const result = await response.json();
+                const processList = result.processes.slice(0, 10).map(p =>
+                    `${p.pid}\t${p.name}\t${p.cpu_percent}%\t${p.memory_percent}%`
+                ).join('\n');
+                alert(`Top 10 Procesos:\nPID\tNombre\tCPU%\tRAM%\n${processList}`);
+            } catch (error) {
+                alert('Error: ' + error);
+            }
+        }
+
+        // Load clients on page load
+        loadClients();
+
+        // Auto-refresh every 5 seconds
+        setInterval(loadClients, 5000);
+    </script>
+</body>
+</html>
