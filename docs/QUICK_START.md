@@ -25,7 +25,7 @@ En cada PC que quieras controlar:
 
 ```bash
 # Clonar repositorio
-git clone https://github.com/tu-usuario/remote-pc-control.git
+git clone https://github.com/n1x-technologies/remote-pc-control.git
 cd remote-pc-control
 
 # Instalar
